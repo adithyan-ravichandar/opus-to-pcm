@@ -2,27 +2,36 @@ const WebSocket = require('ws');
 const fs = require('fs');
 
 const opusPackets = './raw_opus/';
+
+const output_opus = './raw_opus/output.opus';
+
 let packets = [],
     source = [],
     interval = 0,
     count = 0,
     wss;
 
-fs.readdir(opusPackets, (err, files) => {
-    files = files.filter(file => file.indexOf('.txt') !== -1);
-    files = files.map(file => parseInt(file));
-    files.sort((a, b) => a - b);
-    files.forEach(function(file) {
-        fs.readFile(opusPackets + file + '.txt', (err, data) => {
-            if (err) throw err;
-            source.push(data);
-            count++;
-            if (files.length == count) {
-                packets = source.slice();
-                openSocket();
-            }
-        });
-    });
+fs.readFile(output_opus, (err, data) => {
+    if (err) {
+        console.error(err);
+        return;
+      }
+
+      let offset = 0;
+
+      while (offset < data.length) {
+        const length = data.readUInt32LE(offset);
+        offset += 4;
+        const packet = data.slice(offset, offset + length);
+        offset += length;
+        packets.push(packet);
+        count++;
+        
+        if(count == 2001){
+            console.log('Packets loaded');
+            openSocket();
+        }
+      }
 });
 
 
